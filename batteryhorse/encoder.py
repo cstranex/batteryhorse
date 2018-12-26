@@ -6,6 +6,7 @@ https://github.com/cstranex/batteryhorse
 import os
 import sys
 import argparse
+from functools import lru_cache
 import nltk
 from nltk.corpus import wordnet
 from .version import __version__
@@ -21,30 +22,37 @@ def _filter_words(word):
     return word.isalpha() and len(word) > 1
 
 
-NLTK_PATH = os.path.join(os.path.dirname(__file__), 'nltk_data')
-if NLTK_PATH not in nltk.data.path:
-    nltk.data.path.insert(0, NLTK_PATH)
+@lru_cache()
+def _get_words():
+    nltk_path = os.path.join(os.path.dirname(__file__), 'nltk_data')
+    if nltk_path not in nltk.data.path:
+        nltk.data.path.insert(0, nltk_path)
 
-VERBS = sorted({word.lower() for word in filter(
-    _filter_words, wordnet.all_lemma_names(wordnet.VERB))})
-VERB_SIZE = len(VERBS)
+    verbs = sorted({word.lower() for word in filter(
+        _filter_words, wordnet.all_lemma_names(wordnet.VERB))})
+    verb_size = len(verbs)
 
-NOUNS = sorted({word.lower() for word in filter(
-    _filter_words, wordnet.all_lemma_names(wordnet.NOUN))})
-NOUN_SIZE = len(VERBS)
+    nouns = sorted({word.lower() for word in filter(
+        _filter_words, wordnet.all_lemma_names(wordnet.NOUN))})
+    noun_size = len(nouns)
 
-ADJS = sorted({word.lower() for word in filter(
-    _filter_words, wordnet.all_lemma_names(wordnet.ADJ))})
-ADJ_SIZE = len(VERBS)
+    adjs = sorted({word.lower() for word in filter(
+        _filter_words, wordnet.all_lemma_names(wordnet.ADJ))})
+    adj_size = len(adjs)
 
-CONJS = sorted(['and', 'or', 'lest', 'till', 'nor',
-                'but', 'yet', 'so', 'unless', 'when'])
-CONJ_SIZE = len(CONJS)
+    conjs = sorted(['and', 'or', 'lest', 'till', 'nor',
+                    'but', 'yet', 'so', 'unless', 'when'])
+    conj_size = len(conjs)
+
+    return (verbs, verb_size, nouns, noun_size, adjs, adj_size, conjs, conj_size)
 
 
 def encode_data(data: bytes) -> str:
     """Creates a sentence encoding the hashed data given above. The output is one or more
     sentences with the format Verb Noun Adjective Conjunction Adjective."""
+
+    VERBS, VERB_SIZE, NOUNS, NOUN_SIZE, ADJS, ADJ_SIZE, CONJS, CONJ_SIZE = _get_words()
+
     sentences = []
     sentence = []
     value = int.from_bytes(data, byteorder='big', signed=False)
@@ -71,6 +79,7 @@ def encode_data(data: bytes) -> str:
 def decode_data(string: str, length: int) -> bytes:
     """Extract the hash of the encoded data from the given string of sentences created
     with encode_data."""
+    VERBS, VERB_SIZE, NOUNS, NOUN_SIZE, ADJS, ADJ_SIZE, CONJS, CONJ_SIZE = _get_words()
     parts = [
         (ADJS, ADJ_SIZE),
         (CONJS, CONJ_SIZE),
@@ -96,6 +105,7 @@ def decode_data(string: str, length: int) -> bytes:
 
 def create_secret(size=3):
     """Creates a random sentence that can be used as a passphrase"""
+    VERBS, VERB_SIZE, NOUNS, NOUN_SIZE, ADJS, ADJ_SIZE, CONJS, CONJ_SIZE = _get_words()
     words = []
     for _ in range(size):
         words.append(choice(NOUNS + VERBS))

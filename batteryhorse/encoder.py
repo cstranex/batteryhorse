@@ -8,6 +8,7 @@ import sys
 import argparse
 import nltk
 from nltk.corpus import wordnet
+from .version import __version__
 
 try:
     from secrets import choice
@@ -20,26 +21,30 @@ def _filter_words(word):
     return word.isalpha() and len(word) > 1
 
 
-nltk_path = os.path.join(os.path.dirname(__file__), 'nltk_data')
-if nltk_path not in nltk.data.path:
-    nltk.data.path.insert(0, nltk_path)
+NLTK_PATH = os.path.join(os.path.dirname(__file__), 'nltk_data')
+if NLTK_PATH not in nltk.data.path:
+    nltk.data.path.insert(0, NLTK_PATH)
 
-VERBS = sorted(set([word.lower() for word in filter(_filter_words, wordnet.all_lemma_names(wordnet.VERB))]))
+VERBS = sorted({word.lower() for word in filter(
+    _filter_words, wordnet.all_lemma_names(wordnet.VERB))})
 VERB_SIZE = len(VERBS)
 
-NOUNS = sorted(set([word.lower() for word in filter(_filter_words, wordnet.all_lemma_names(wordnet.NOUN))]))
+NOUNS = sorted({word.lower() for word in filter(
+    _filter_words, wordnet.all_lemma_names(wordnet.NOUN))})
 NOUN_SIZE = len(VERBS)
 
-ADJS = sorted(set([word.lower() for word in filter(_filter_words, wordnet.all_lemma_names(wordnet.ADJ))]))
+ADJS = sorted({word.lower() for word in filter(
+    _filter_words, wordnet.all_lemma_names(wordnet.ADJ))})
 ADJ_SIZE = len(VERBS)
 
-CONJS = sorted(['and', 'or', 'lest', 'till', 'nor', 'but', 'yet', 'so', 'unless', 'when'])
+CONJS = sorted(['and', 'or', 'lest', 'till', 'nor',
+                'but', 'yet', 'so', 'unless', 'when'])
 CONJ_SIZE = len(CONJS)
 
 
 def encode_data(data: bytes) -> str:
-    """Creates a sentence encoding the hashed data given above. The output is one or more sentences with the format
-    Verb Noun Adjective Conjunction Adjective."""
+    """Creates a sentence encoding the hashed data given above. The output is one or more
+    sentences with the format Verb Noun Adjective Conjunction Adjective."""
     sentences = []
     sentence = []
     value = int.from_bytes(data, byteorder='big', signed=False)
@@ -64,7 +69,8 @@ def encode_data(data: bytes) -> str:
 
 
 def decode_data(string: str, length: int) -> bytes:
-    """Extract the hash of the encoded data from the given string of sentences created with encode_data."""
+    """Extract the hash of the encoded data from the given string of sentences created
+    with encode_data."""
     parts = [
         (ADJS, ADJ_SIZE),
         (CONJS, CONJ_SIZE),
@@ -97,23 +103,36 @@ def create_secret(size=3):
 
 
 def main():
-    parser = argparse.ArgumentParser(prog="batteryhorse", description="Encode and decode data as sentences")
-    parser.add_argument('--encode', action='store_true', description='Accept data to be encoded from STDIN')
-    parser.add_argument('--decode', action='store_true', description='Accept data to be decoded from STDIN')
-    parser.add_argument('--generate', action='store_true', description='Generate a random secret')
-    parser.add_argument('--length', description='Specify the length of secret or data to be decoded', default=20, type=int)
-    parser.add_argument('--version', action='version', version='%(prog)s ' + VERSION)
+    """Run Batteryhorse in the terminal"""
+    parser = argparse.ArgumentParser(
+        prog="batteryhorse", description="Encode and decode data as sentences")
+    parser.add_argument('--encode', action='store_true',
+                        help='Accept data to be encoded from STDIN')
+    parser.add_argument('--decode', action='store_true',
+                        help='Accept data to be decoded from STDIN')
+    parser.add_argument('--generate', action='store_true',
+                        help='Generate a random secret')
+    parser.add_argument(
+        '--length',
+        help='Specify the length of secret or data to be decoded',
+        default=20,
+        type=int
+    )
+    parser.add_argument('--version', action='version',
+                        version='%(prog)s ' + __version__)
 
     args = parser.parse_args()
 
     if args.encode:
         data = sys.stdin.read()
-        print(encode_data(data))
+        print(encode_data(data.encode('ascii')))
     elif args.decode:
         data = sys.stdin.read()
-        print(decode_data(data, args.length))
+        print(decode_data(data, args.length).decode('ascii'))
     elif args.generate:
         print(create_secret(args.length))
+    else:
+        print(parser.print_usage())
 
 
 if __name__ == '__main__':

@@ -1,6 +1,9 @@
 # BatteryHorse
 Encode and decode text as English sentences. The name is inspired by this [xkcd comic](https://www.xkcd.com/936/).
 
+## Installation
+Use pip: `pip install BatteryHorse` or pipenv: `pipenv install BatteryHorse`
+
 ## API
 The batteryhorse module exposes three functions:
 
@@ -48,7 +51,7 @@ BatteryHorse is also available on the command line.
 
 And as an example
 ```bash
-$ echo "TEST" | python -m batteryhorse --encode
+$ echo "TEST" | batteryhorse --encode
 Bare gyrostabilizer amygdaloidal
 ```
 
